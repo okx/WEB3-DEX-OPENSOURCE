@@ -1,0 +1,17 @@
+node_modules/
+lib/
+broadcast/
+cache/
+artifacts/
+.env
+abi/
+*.xml
+*.iml
+*.log
+.vscode/
+.idea/
+.DS_Store
+coverage.json
+coverage/
+.gas-snapshot
+.github/
