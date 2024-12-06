@@ -97,7 +97,7 @@ npx hardhat lint
 
 ## Questions?
 - Open a discussion [issue](https://github.com/okx/WEB3-DEX-OPENSOURCE/issues) for general questions
-- Join our [community]((https://discord.gg/3N9PHeNn) for real-time discussions
+- Join our [community](https://discord.gg/3N9PHeNn) for real-time discussions
 - Review existing issues and discussions
 
 Thank you for contributing to the SOR SmartContract repo!
