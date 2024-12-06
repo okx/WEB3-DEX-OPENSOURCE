@@ -90,22 +90,14 @@ npx hardhat lint
 - Read through our documentation
 - Set up your local development environment following the Installation guide
 
-## Development Setup
-```sh
-git clone https://github.com/YOUR_USERNAME/WEB3-DEX-OPENSOURCE.git
-cd WEB3-DEX-OPENSOURCE
-npm install
-npx hardhat compile
-```
-
 ## Code Review Process
 1. A maintainer will review your PR
 2. Address any requested changes
 3. Once approved, your PR will be merged
 
 ## Questions?
-- Open a discussion issue for general questions
-- Join our community for real-time discussions
+- Open a discussion [issue](https://github.com/okx/WEB3-DEX-OPENSOURCE/issues) for general questions
+- Join our [community]((https://discord.gg/3N9PHeNn) for real-time discussions
 - Review existing issues and discussions
 
-Thank you for contributing to SOR SmartContract!
+Thank you for contributing to the SOR SmartContract repo!
