@@ -53,4 +53,59 @@ To use the contracts in this repository, you need to have the following prerequi
    npx hardhat test
    ```
 
+# Contributing
 
+There are several ways you can contribute to the SOR SmartContract project:
+
+## Ways to Contribute
+
+### Join Community Discussions
+Join our [Discord community](https://discord.gg/3N9PHeNn) to help other developers troubleshoot their integration issues and share your experience with the SOR SmartContract. Our Discord is the main hub for technical discussions, questions, and real-time support.
+
+### Open an Issue
+- Open [issues](https://github.com/okx/WEB3-DEX-OPENSOURCE/issues) to suggest features or report minor bugs
+- Before opening a new issue, search existing issues to avoid duplicates
+- When requesting features, include details about use cases and potential impact
+
+### Submit Pull Requests
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+```sh
+npx hardhat test
+npx hardhat lint
+```
+5. Submit a pull request
+
+### Pull Request Guidelines
+- Discuss non-trivial changes in an issue first
+- Include tests for new functionality
+- Update documentation as needed
+- Add a changelog entry describing your changes in the PR
+- PRs should be focused and preferably address a single concern
+
+## First Time Contributors
+- Look for issues labeled "good first issue"
+- Read through our documentation
+- Set up your local development environment following the Installation guide
+
+## Development Setup
+```sh
+git clone https://github.com/YOUR_USERNAME/WEB3-DEX-OPENSOURCE.git
+cd WEB3-DEX-OPENSOURCE
+npm install
+npx hardhat compile
+```
+
+## Code Review Process
+1. A maintainer will review your PR
+2. Address any requested changes
+3. Once approved, your PR will be merged
+
+## Questions?
+- Open a discussion issue for general questions
+- Join our community for real-time discussions
+- Review existing issues and discussions
+
+Thank you for contributing to SOR SmartContract!
