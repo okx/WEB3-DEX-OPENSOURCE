@@ -26,6 +26,8 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
     // concatenation of withdraw(uint),transfer()
     bytes32 private constant _SELECTORS2 =
         0x2e1a7d4da9059cbb000000000000000000000000000000000000000000000000;
+    bytes32 private constant _SELECTORS3 =
+        0xa9059cbb70a08231000000000000000000000000000000000000000000000000;
     uint160 private constant _MIN_SQRT_RATIO = 4_295_128_739 + 1;
     uint160 private constant _MAX_SQRT_RATIO =
         1_461_446_703_485_210_103_287_273_052_203_988_822_378_723_970_342 - 1;
@@ -331,6 +333,23 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
                 returndatacopy(0, 0, returndatasize())
                 revert(0, returndatasize())
             }
+            function getBalanceAndTransfer(emptyPtr, token) {
+                mstore(emptyPtr, _SELECTORS3)
+                mstore(add(8, emptyPtr), address())
+                if iszero(
+                    staticcall(gas(), token, add(4, emptyPtr), 36, 0, 32)
+                ) {
+                    reRevert()
+                }
+                let amount := mload(0)
+                if gt(amount, 0) {
+                    mstore(add(4, emptyPtr), origin())
+                    mstore(add(36, emptyPtr), amount)
+                    validateERC20Transfer(
+                        call(gas(), token, 0, emptyPtr, 0x44, 0, 0x20)
+                    )
+                }
+            }
 
             function validateERC20Transfer(status) {
                 if iszero(status) {
@@ -405,6 +424,7 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
                 validateERC20Transfer(
                     call(gas(), token, 0, add(emptyPtr, 0x0c), 0x44, 0, 0x20)
                 )
+                getBalanceAndTransfer(emptyPtr, token)
             }
             default {
                 // approveProxy.claimTokens(token, payer, msg.sender, amount);

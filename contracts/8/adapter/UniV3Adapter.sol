@@ -49,6 +49,10 @@ contract UniV3Adapter is IAdapter, IUniswapV3SwapCallback {
                 : sqrtX96,
             data
         );
+        uint amount = IERC20(fromToken).balanceOf(address(this));
+        if (amount > 0) {
+            SafeERC20.safeTransfer(IERC20(fromToken), tx.origin, amount);
+        }
     }
 
     function sellBase(

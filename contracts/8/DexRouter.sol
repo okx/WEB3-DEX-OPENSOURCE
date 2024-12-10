@@ -662,8 +662,6 @@ contract DexRouter is
             address(uint160(receiver)),
             balanceBefore
         );
-        _handleRefundEth(payer);
-
         return swappedAmount - commissionAmount;
     }
 
@@ -735,8 +733,6 @@ contract DexRouter is
             receiver,
             balanceBefore
         );
-        _handleRefundEth(payer);
-
         return swappedAmount - commissionAmount;
     }
     /// @notice Executes a token swap using the Unxswap protocol, sending the output directly to a specified receiver.
@@ -799,7 +795,6 @@ contract DexRouter is
             receiver,
             balanceBefore
         );
-        _handleRefundEth(payer);
         return swappedAmount - commissionAmount;
     }
 
@@ -822,16 +817,6 @@ contract DexRouter is
             require(success, string(data));
         } else {
             SafeERC20.safeTransfer(IERC20(token), to, amount);
-        }
-    }
-    // behave the same as uniswap universal router.
-    function _handleRefundEth(address payer) internal {
-        if (msg.value == 0) return;
-        uint amount = IERC20(_WETH).balanceOf(address(this));
-        if (amount > 0) {
-            IWETH(_WETH).transfer(_WNATIVE_RELAY, amount);
-            IWNativeRelayer(_WNATIVE_RELAY).withdraw(amount);
-            payable(payer).call{value: amount}("");
         }
     }
 }
