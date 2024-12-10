@@ -84,6 +84,9 @@ npx hardhat test
 - Add a changelog entry describing your changes in the PR
 - PRs should be focused and preferably address a single concern
 
+## Bug Bounty
+Help us enhance the security of the SOR SmartContract by participating in our bug bounty program. Report vulnerabilities and earn rewards! Learn more and get started at [HackerOne](https://hackerone.com/okg/policy_scopes?type=team).
+
 ## First Time Contributors
 - Look for issues labeled "good first issue"
 - Read through our documentation
