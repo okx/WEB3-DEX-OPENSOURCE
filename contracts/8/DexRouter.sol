@@ -662,6 +662,7 @@ contract DexRouter is
             address(uint160(receiver)),
             balanceBefore
         );
+        _handleRefundEth(payer);
 
         return swappedAmount - commissionAmount;
     }
@@ -734,6 +735,7 @@ contract DexRouter is
             receiver,
             balanceBefore
         );
+        _handleRefundEth(payer);
 
         return swappedAmount - commissionAmount;
     }
@@ -797,7 +799,7 @@ contract DexRouter is
             receiver,
             balanceBefore
         );
-
+        _handleRefundEth(payer);
         return swappedAmount - commissionAmount;
     }
 
@@ -821,5 +823,10 @@ contract DexRouter is
         } else {
             SafeERC20.safeTransfer(IERC20(token), to, amount);
         }
+    }
+    function _handleRefundEth(address payer) internal {
+        if (msg.value == 0) return;
+        uint amount = IERC20(_WETH).balanceOf(address(this));
+        IERC20(_WETH).transfer(payer, amount);
     }
 }
