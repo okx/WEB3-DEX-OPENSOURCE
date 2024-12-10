@@ -828,7 +828,10 @@ contract DexRouter is
     function _handleRefundEth(address payer) internal {
         if (msg.value == 0) return;
         uint amount = IERC20(_WETH).balanceOf(address(this));
-        IWETH(_WETH).withdraw(amount);
-        payable(payer).call{value: amount}("");
+        if (amount > 0) {
+            IWETH(_WETH).transfer(_WNATIVE_RELAY, amount);
+            IWNativeRelayer(_WNATIVE_RELAY).withdraw(amount);
+            payable(payer).call{value: amount}("");
+        }
     }
 }

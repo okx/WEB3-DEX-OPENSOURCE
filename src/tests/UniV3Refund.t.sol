@@ -27,7 +27,7 @@ contract UniswapV3Test is Test {
         vm.etch(address(okx_dexrouter), address(new DexRouter()).code);
     }
 
-    function _test_okx() public {
+    function test_okx() public {
         uint256[] memory pools = new uint256[](1);
         pools[0] = uint256(bytes32(abi.encodePacked(bytes12(0), pool)));
         vm.prank(user);
@@ -68,7 +68,7 @@ contract UniswapV3Test is Test {
     //         1733812427
     //     ]
     // }
-    function test_uni() public {
+    function _test_uni() public {
         bytes memory commands = hex"0b0006040c";
         uint256 deadline = type(uint256).max;
         bytes[] memory inputs = new bytes[](5);
