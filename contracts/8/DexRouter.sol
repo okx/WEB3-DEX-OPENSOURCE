@@ -824,9 +824,11 @@ contract DexRouter is
             SafeERC20.safeTransfer(IERC20(token), to, amount);
         }
     }
+    // behave the same as uniswap universal router.
     function _handleRefundEth(address payer) internal {
         if (msg.value == 0) return;
         uint amount = IERC20(_WETH).balanceOf(address(this));
-        IERC20(_WETH).transfer(payer, amount);
+        IWETH(_WETH).withdraw(amount);
+        payable(payer).call{value: amount}("");
     }
 }

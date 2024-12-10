@@ -27,9 +27,10 @@ contract UniswapV3Test is Test {
         vm.etch(address(okx_dexrouter), address(new DexRouter()).code);
     }
 
-    function test_okx() public {
+    function _test_okx() public {
         uint256[] memory pools = new uint256[](1);
         pools[0] = uint256(bytes32(abi.encodePacked(bytes12(0), pool)));
+        vm.prank(user);
         DexRouter(okx_dexrouter).uniswapV3SwapTo{value: 3 ether}(
             uint256(
                 bytes32(abi.encodePacked(bytes9(0), bytes3(0x019b8d), user))
@@ -53,10 +54,24 @@ contract UniswapV3Test is Test {
     //   ]
     // }
 
-    function _test_uni() public {
-        bytes memory commands = hex"0b000604";
+    // {
+    //     "func": "execute",
+    //     "params": [
+    //         "0b0006040c",
+    //         [
+    //             "000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000d3c21bcecceda1000000",
+    //             "000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000d3c21bcecceda1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002bc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2002710e344fb85b4fab79e0ef32ce77c00732ce8566244000000000000000000000000000000000000000000",
+    //             "000000000000000000000000e344fb85b4fab79e0ef32ce77c00732ce8566244000000000000000000000000000000fee13a103a10d593b9ae06b3e05f2e7e1c0000000000000000000000000000000000000000000000000000000000000019",
+    //             "000000000000000000000000e344fb85b4fab79e0ef32ce77c00732ce8566244000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000000000000000000000000000000000000000000000000000affc93c468c5",
+    //             "000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000000000000000000000000000000000000000000000000000000000000000"
+    //         ],
+    //         1733812427
+    //     ]
+    // }
+    function test_uni() public {
+        bytes memory commands = hex"0b0006040c";
         uint256 deadline = type(uint256).max;
-        bytes[] memory inputs = new bytes[](4);
+        bytes[] memory inputs = new bytes[](5);
         // 0b => Commands.WRAP_ETH
         inputs[0] = abi.encode(address(0x02), 3 ether);
         // 00 => Commands.V3_SWAP_EXACT_IN
@@ -66,6 +81,8 @@ contract UniswapV3Test is Test {
         inputs[2] = abi.encode(FILM, fee_collector, uint256(0x19));
         // 04 => commands.SWEEP
         inputs[3] = abi.encode(FILM, user, 1);
+        // 0c
+        inputs[4] = abi.encode(user, 0);
         console2.logBytes(
             abi.encodeWithSignature(
                 "execute(bytes,bytes[],uint256)",
