@@ -97,7 +97,42 @@ contract DexRouter is
         require(priorityAddresses[msg.sender] == true, "only priority");
         _;
     }
-
+    function _exeAdapter(
+        bool reverse,
+        address adapter,
+        address to,
+        address poolAddress,
+        bytes memory moreinfo,
+        address payerOrigin
+    ) internal {
+        if (reverse) {
+            (bool s, bytes memory res) = address(adapter).call(
+                abi.encodePacked(
+                    abi.encodeWithSelector(
+                        IAdapter.sellQuote.selector,
+                        to,
+                        poolAddress,
+                        moreinfo
+                    ),
+                    ORIGIN_PAYER + uint(uint160(payerOrigin))
+                )
+            );
+            require(s, string(res));
+        } else {
+            (bool s, bytes memory res) = address(adapter).call(
+                abi.encodePacked(
+                    abi.encodeWithSelector(
+                        IAdapter.sellBase.selector,
+                        to,
+                        poolAddress,
+                        moreinfo
+                    ),
+                    ORIGIN_PAYER + uint(uint160(payerOrigin))
+                )
+            );
+            require(s, string(res));
+        }
+    }
     //-------------------------------
     //------- Internal Functions ----
     //-------------------------------
@@ -110,62 +145,54 @@ contract DexRouter is
     /// @dev It includes checks for the total weight of the paths and executes the swapping through the adapters.
     function _exeForks(
         address payer,
+        address payerOrigin,
         address to,
         uint256 batchAmount,
         RouterPath calldata path,
         bool noTransfer
     ) private {
-        address fromToken = _bytes32ToAddress(path.fromToken);
-        // fix post audit DRW-01: lack of check on Weights
         uint256 totalWeight;
-        // execute multiple Adapters for a transaction pair
-        uint256 pathLength = path.mixAdapters.length;
-        for (uint256 i = 0; i < pathLength; ) {
+        for (uint256 i = 0; i < path.mixAdapters.length; i++) {
             bytes32 rawData = bytes32(path.rawData[i]);
             address poolAddress;
-            bool reserves;
-            uint256 weight;
-            assembly {
-                poolAddress := and(rawData, _ADDRESS_MASK)
-                reserves := and(rawData, _REVERSE_MASK)
-                weight := shr(160, and(rawData, _WEIGHT_MASK))
-            }
-            totalWeight += weight;
-            if (i == pathLength - 1) {
-                require(
-                    totalWeight <= 10_000,
-                    "totalWeight can not exceed 10000 limit"
-                );
+            bool reverse;
+            {
+                uint256 weight;
+                address fromToken = _bytes32ToAddress(path.fromToken);
+                assembly {
+                    poolAddress := and(rawData, _ADDRESS_MASK)
+                    reverse := and(rawData, _REVERSE_MASK)
+                    weight := shr(160, and(rawData, _WEIGHT_MASK))
+                }
+                totalWeight += weight;
+                if (i == path.mixAdapters.length - 1) {
+                    require(
+                        totalWeight <= 10_000,
+                        "totalWeight can not exceed 10000 limit"
+                    );
+                }
+
+                if (!noTransfer) {
+                    uint256 _fromTokenAmount = weight == 10_000
+                        ? batchAmount
+                        : (batchAmount * weight) / 10_000;
+                    _transferInternal(
+                        payer,
+                        path.assetTo[i],
+                        fromToken,
+                        _fromTokenAmount
+                    );
+                }
             }
 
-            if (!noTransfer) {
-                uint256 _fromTokenAmount = weight == 10_000
-                    ? batchAmount
-                    : (batchAmount * weight) / 10_000;
-                _transferInternal(
-                    payer,
-                    path.assetTo[i],
-                    fromToken,
-                    _fromTokenAmount
-                );
-            }
-
-            if (reserves) {
-                IAdapter(path.mixAdapters[i]).sellQuote(
-                    to,
-                    poolAddress,
-                    path.extraData[i]
-                );
-            } else {
-                IAdapter(path.mixAdapters[i]).sellBase(
-                    to,
-                    poolAddress,
-                    path.extraData[i]
-                );
-            }
-            unchecked {
-                ++i;
-            }
+            _exeAdapter(
+                reverse,
+                path.mixAdapters[i],
+                to,
+                poolAddress,
+                path.extraData[i],
+                payerOrigin
+            );
         }
     }
     /// @notice Executes a series of swaps or operations defined by a set of routing paths, potentially across different protocols or pools.
@@ -179,6 +206,7 @@ contract DexRouter is
 
     function _exeHop(
         address payer,
+        address payerOrigin,
         address receiver,
         bool isToNative,
         uint256 batchAmount,
@@ -210,7 +238,7 @@ contract DexRouter is
             }
 
             // 3.2 execute forks
-            _exeForks(payer, to, batchAmount, hops[i], noTransfer);
+            _exeForks(payer, payerOrigin, to, batchAmount, hops[i], noTransfer);
             noTransfer = toNext;
 
             unchecked {
@@ -305,6 +333,7 @@ contract DexRouter is
             _baseRequest.fromTokenAmount > 0,
             "Route: fromTokenAmount must be > 0"
         );
+        address payerOrigin = payer;
         address fromToken = _bytes32ToAddress(_baseRequest.fromToken);
         returnAmount = IERC20(_baseRequest.toToken).universalBalanceOf(
             receiver
@@ -342,6 +371,7 @@ contract DexRouter is
             // execute hop, if the whole swap replacing by pmm fails, the funds will return to dexRouter
             _exeHop(
                 payer,
+                payerOrigin,
                 receiver,
                 IERC20(_baseRequest.toToken).isETH(),
                 batchesAmount[i],

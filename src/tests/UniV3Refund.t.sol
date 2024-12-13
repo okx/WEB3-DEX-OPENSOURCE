@@ -6,6 +6,7 @@ import "forge-std/console2.sol";
 
 import "@dex/DexRouter.sol";
 import "@dex/adapter/UniV3Adapter.sol";
+
 contract UniswapV3Test is Test {
     address user = 0x07d3915Efd92a536c406F5063918d2Df0d9708e7;
     address payable okx_dexrouter =
@@ -35,7 +36,7 @@ contract UniswapV3Test is Test {
             address(new UniV3Adapter(payable(WETH))).code
         );
         vm.prank(user);
-        IERC20(USDC).approve(token_approve, type(uint).max);
+        IERC20(USDC).approve(token_approve, type(uint256).max);
 
         deal(USDC, user, 120000 * 10 ** 6);
     }
@@ -52,8 +53,10 @@ contract UniswapV3Test is Test {
             390789165003,
             pools
         );
+        console2.log("film balance", IERC20(FILM).balanceOf(pool));
     }
-    function test_okx_unxv3() public {
+
+    function _test_okx_unxv3() public {
         uint256[] memory pools = new uint256[](2);
         pools[0] = uint256(
             bytes32(abi.encodePacked(bytes1(0x00), bytes11(0), pool_usdc))
@@ -69,6 +72,7 @@ contract UniswapV3Test is Test {
             pools
         );
     }
+
     struct SwapInfo {
         uint256 orderId;
         DexRouter.BaseRequest baseRequest;
@@ -76,8 +80,9 @@ contract UniswapV3Test is Test {
         DexRouter.RouterPath[][] batches;
         PMMLib.PMMSwapRequest[] extraData;
     }
-    function _test_okx_smartswap() public {
-        uint amount = 3 ether;
+
+    function test_okx_smartswap() public {
+        uint256 amount = 3 ether;
         SwapInfo memory swapInfo;
         swapInfo.baseRequest.fromToken = uint256(uint160(address(ETH_ADDRESS)));
         swapInfo.baseRequest.toToken = FILM;
@@ -85,7 +90,7 @@ contract UniswapV3Test is Test {
         swapInfo.baseRequest.minReturnAmount = 0;
         swapInfo.baseRequest.deadLine = block.timestamp;
 
-        swapInfo.batchesAmount = new uint[](1);
+        swapInfo.batchesAmount = new uint256[](1);
         swapInfo.batchesAmount[0] = amount;
 
         swapInfo.batches = new DexRouter.RouterPath[][](1);
@@ -94,7 +99,7 @@ contract UniswapV3Test is Test {
         swapInfo.batches[0][0].mixAdapters[0] = address(adapter);
         swapInfo.batches[0][0].assetTo = new address[](1);
         swapInfo.batches[0][0].assetTo[0] = address(adapter);
-        swapInfo.batches[0][0].rawData = new uint[](1);
+        swapInfo.batches[0][0].rawData = new uint256[](1);
         swapInfo.batches[0][0].rawData[0] = uint256(
             bytes32(abi.encodePacked(false, uint88(10000), address(pool)))
         );
@@ -115,8 +120,9 @@ contract UniswapV3Test is Test {
             swapInfo.extraData
         );
     }
-    function _test_okx_smartswap_usdc() public {
-        uint amount = 120000 * 10 ** 6;
+
+    function test_okx_smartswap_usdc() public {
+        uint256 amount = 120000 * 10 ** 6;
         SwapInfo memory swapInfo;
         swapInfo.baseRequest.fromToken = uint256(uint160(address(USDC)));
         swapInfo.baseRequest.toToken = FILM;
@@ -124,7 +130,7 @@ contract UniswapV3Test is Test {
         swapInfo.baseRequest.minReturnAmount = 0;
         swapInfo.baseRequest.deadLine = block.timestamp;
 
-        swapInfo.batchesAmount = new uint[](1);
+        swapInfo.batchesAmount = new uint256[](1);
         swapInfo.batchesAmount[0] = amount;
 
         swapInfo.batches = new DexRouter.RouterPath[][](1);
@@ -133,7 +139,7 @@ contract UniswapV3Test is Test {
         swapInfo.batches[0][0].mixAdapters[0] = address(adapter);
         swapInfo.batches[0][0].assetTo = new address[](1);
         swapInfo.batches[0][0].assetTo[0] = address(adapter);
-        swapInfo.batches[0][0].rawData = new uint[](1);
+        swapInfo.batches[0][0].rawData = new uint256[](1);
         swapInfo.batches[0][0].rawData[0] = uint256(
             bytes32(
                 abi.encodePacked(uint8(0x80), uint88(10000), address(pool_usdc))
@@ -150,7 +156,7 @@ contract UniswapV3Test is Test {
         swapInfo.batches[0][1].mixAdapters[0] = address(adapter);
         swapInfo.batches[0][1].assetTo = new address[](1);
         swapInfo.batches[0][1].assetTo[0] = address(adapter);
-        swapInfo.batches[0][1].rawData = new uint[](1);
+        swapInfo.batches[0][1].rawData = new uint256[](1);
         swapInfo.batches[0][1].rawData[0] = uint256(
             bytes32(abi.encodePacked(false, uint88(10000), address(pool)))
         );
