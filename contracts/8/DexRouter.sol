@@ -679,7 +679,7 @@ contract DexRouter is
                 amount
             );
 
-        (uint256 swappedAmount, ) = _uniswapV3Swap(
+        uint256 swappedAmount = _uniswapV3Swap(
             payer,
             payable(middleReceiver),
             amount,

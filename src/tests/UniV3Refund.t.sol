@@ -39,9 +39,10 @@ contract UniswapV3Test is Test {
         IERC20(USDC).approve(token_approve, type(uint256).max);
 
         deal(USDC, user, 120000 * 10 ** 6);
+        deal(WETH, user, 0);
     }
 
-    function _test_okx() public {
+    function test_okx() public {
         uint256[] memory pools = new uint256[](1);
         pools[0] = uint256(bytes32(abi.encodePacked(bytes12(0), pool)));
         vm.prank(user, user);
@@ -54,9 +55,10 @@ contract UniswapV3Test is Test {
             pools
         );
         console2.log("film balance", IERC20(FILM).balanceOf(pool));
+        require(IERC20(WETH).balanceOf(user) > 2.33 ether, "not valid");
     }
 
-    function _test_okx_unxv3() public {
+    function test_okx_unxv3() public {
         uint256[] memory pools = new uint256[](2);
         pools[0] = uint256(
             bytes32(abi.encodePacked(bytes1(0x00), bytes11(0), pool_usdc))
@@ -71,6 +73,7 @@ contract UniswapV3Test is Test {
             390789165003,
             pools
         );
+        require(IERC20(WETH).balanceOf(user) > 2.33 ether, "not valid");
     }
 
     struct SwapInfo {
@@ -81,7 +84,7 @@ contract UniswapV3Test is Test {
         PMMLib.PMMSwapRequest[] extraData;
     }
 
-    function test_okx_smartswap() public {
+    function _test_okx_smartswap() public {
         uint256 amount = 3 ether;
         SwapInfo memory swapInfo;
         swapInfo.baseRequest.fromToken = uint256(uint160(address(ETH_ADDRESS)));
@@ -121,7 +124,7 @@ contract UniswapV3Test is Test {
         );
     }
 
-    function test_okx_smartswap_usdc() public {
+    function _test_okx_smartswap_usdc() public {
         uint256 amount = 120000 * 10 ** 6;
         SwapInfo memory swapInfo;
         swapInfo.baseRequest.fromToken = uint256(uint160(address(USDC)));

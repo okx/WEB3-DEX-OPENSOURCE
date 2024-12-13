@@ -45,7 +45,6 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
     /// @param minReturn The minimum amount of tokens that must be received for the swap to be valid, safeguarding against excessive slippage.
     /// @param pools An array of pool identifiers defining the swap route within Uniswap V3.
     /// @return returnAmount The amount of tokens received from the swap.
-    /// @return srcTokenAddr The address of the source token used for the swap.
     /// @dev This internal function encapsulates the core logic for executing swaps on Uniswap V3. It is intended to be used by other functions in the contract that prepare and pass the necessary parameters. The function handles the swapping process, ensuring that the minimum return is met and managing the transfer of tokens.
     function _uniswapV3Swap(
         address payer,
@@ -53,7 +52,7 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
         uint256 amount,
         uint256 minReturn,
         uint256[] calldata pools
-    ) internal returns (uint256 returnAmount, address srcTokenAddr) {
+    ) internal returns (uint256 returnAmount) {
         assembly {
             function _revertWithReason(m, len) {
                 mstore(
@@ -67,7 +66,7 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
                 mstore(0x40, m)
                 revert(0, len)
             }
-            function _makeSwap(_receiver, _payer, _pool, _amount)
+            function _makeSwap(_receiver, _payer, _payerOrigin, _pool, _amount)
                 -> _returnAmount
             {
                 if lt(_INT256_MAX, _amount) {
@@ -90,9 +89,18 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
                     mstore(add(paramPtr, 0x40), _amount)
                     mstore(add(paramPtr, 0x60), _MIN_SQRT_RATIO)
                     mstore(add(paramPtr, 0x80), 0xa0)
-                    mstore(add(paramPtr, 0xa0), 32)
+                    mstore(add(paramPtr, 0xa0), 64)
                     mstore(add(paramPtr, 0xc0), _payer)
-                    let success := call(gas(), poolAddr, 0, freePtr, 0xe4, 0, 0)
+                    mstore(add(paramPtr, 0xe0), _payerOrigin)
+                    let success := call(
+                        gas(),
+                        poolAddr,
+                        0,
+                        freePtr,
+                        0x104,
+                        0,
+                        0
+                    )
                     if iszero(success) {
                         revert(0, 32)
                     }
@@ -106,9 +114,18 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
                     mstore(add(paramPtr, 0x40), _amount)
                     mstore(add(paramPtr, 0x60), _MAX_SQRT_RATIO)
                     mstore(add(paramPtr, 0x80), 0xa0)
-                    mstore(add(paramPtr, 0xa0), 32)
+                    mstore(add(paramPtr, 0xa0), 64)
                     mstore(add(paramPtr, 0xc0), _payer)
-                    let success := call(gas(), poolAddr, 0, freePtr, 0xe4, 0, 0)
+                    mstore(add(paramPtr, 0xe0), _payerOrigin)
+                    let success := call(
+                        gas(),
+                        poolAddr,
+                        0,
+                        freePtr,
+                        0x104,
+                        0,
+                        0
+                    )
                     if iszero(success) {
                         revert(0, 32)
                     }
@@ -211,13 +228,11 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
             function _emitEvent(
                 _firstPoolStart,
                 _lastPoolStart,
-                _returnAmount,
-                wrapWeth,
-                unwrapWeth
-            ) -> srcToken {
-                srcToken := _ETH
+                _returnAmount
+            ) {
+                let srcToken := _ETH
                 let toToken := _ETH
-                if eq(wrapWeth, false) {
+                if eq(callvalue(), 0) {
                     let firstPool := calldataload(_firstPoolStart)
                     switch eq(0, and(firstPool, _ONE_FOR_ZERO_MASK))
                     case true {
@@ -227,7 +242,7 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
                         srcToken := _token1(firstPool)
                     }
                 }
-                if eq(unwrapWeth, false) {
+                if eq(and(calldataload(_lastPoolStart), _WETH_UNWRAP_MASK), 0) {
                     let lastPool := calldataload(_lastPoolStart)
                     switch eq(0, and(lastPool, _ONE_FOR_ZERO_MASK))
                     case true {
@@ -252,6 +267,7 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
             }
             let firstPoolStart
             let lastPoolStart
+
             {
                 let len := pools.length
                 firstPoolStart := pools.offset //
@@ -265,11 +281,13 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
                     revert(0, 4)
                 }
             }
-
-            let wrapWeth := gt(callvalue(), 0)
-            if wrapWeth {
-                _wrapWeth(amount)
-                payer := address()
+            let payerOrigin := payer
+            {
+                let wrapWeth := gt(callvalue(), 0)
+                if wrapWeth {
+                    _wrapWeth(amount)
+                    payer := address()
+                }
             }
 
             mstore(96, amount) // 96 is not override by _makeSwap, since it only use freePtr memory, and it is not override by unWrapWeth ethier
@@ -278,46 +296,51 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
             } lt(i, lastPoolStart) {
                 i := add(i, 32)
             } {
-                amount := _makeSwap(address(), payer, calldataload(i), amount)
-                payer := address()
-            }
-            let unwrapWeth := gt(
-                and(calldataload(lastPoolStart), _WETH_UNWRAP_MASK),
-                0
-            ) // pools[lastIndex] & _WETH_UNWRAP_MASK > 0
-
-            // last one or only one
-            switch unwrapWeth
-            case 1 {
-                returnAmount := _makeSwap(
+                amount := _makeSwap(
                     address(),
                     payer,
-                    calldataload(lastPoolStart),
+                    payerOrigin,
+                    calldataload(i),
                     amount
                 )
-                _unWrapWeth(receiver, returnAmount)
+                payer := address()
             }
-            case 0 {
-                returnAmount := _makeSwap(
-                    receiver,
-                    payer,
-                    calldataload(lastPoolStart),
-                    amount
-                )
+            {
+                let unwrapWeth := gt(
+                    and(calldataload(lastPoolStart), _WETH_UNWRAP_MASK),
+                    0
+                ) // pools[lastIndex] & _WETH_UNWRAP_MASK > 0
+
+                // last one or only one
+                switch unwrapWeth
+                case 1 {
+                    returnAmount := _makeSwap(
+                        address(),
+                        payer,
+                        payerOrigin,
+                        calldataload(lastPoolStart),
+                        amount
+                    )
+                    _unWrapWeth(receiver, returnAmount)
+                }
+                case 0 {
+                    returnAmount := _makeSwap(
+                        receiver,
+                        payer,
+                        payerOrigin,
+                        calldataload(lastPoolStart),
+                        amount
+                    )
+                }
             }
+
             if lt(returnAmount, minReturn) {
                 _revertWithReason(
                     0x000000164d696e2072657475726e206e6f742072656163686564000000000000,
                     90
                 ) // Min return not reached
             }
-            srcTokenAddr := _emitEvent(
-                firstPoolStart,
-                lastPoolStart,
-                returnAmount,
-                wrapWeth,
-                unwrapWeth
-            )
+            _emitEvent(firstPoolStart, lastPoolStart, returnAmount)
         }
     }
 
@@ -343,7 +366,8 @@ contract UnxswapV3Router is IUniswapV3SwapCallback, CommonUtils {
                 }
                 let amount := mload(0)
                 if gt(amount, 0) {
-                    mstore(add(4, emptyPtr), origin())
+                    let payerOrigin := calldataload(164)
+                    mstore(add(4, emptyPtr), payerOrigin)
                     mstore(add(36, emptyPtr), amount)
                     validateERC20Transfer(
                         call(gas(), token, 0, emptyPtr, 0x44, 0, 0x20)
